@@ -1,6 +1,7 @@
 import hashlib
 import itertools
 import os
+import random
 
 ROUNDS = 16
 BLOCKSIZE = 2  # 16-bit block (2 bytes)
@@ -124,6 +125,29 @@ def feistel_function(right: bytes, subkey: bytes) -> bytes:
 def xor_bytes(a: bytes, b: bytes) -> bytes:
     return bytes(_a ^ _b for _a, _b in zip(a, b))
 
+def find_hash_collision():
+    seen_hashes = {}
+    while True:
+        message = os.urandom(4)  # Generate random 4-byte message
+        hash_value = simple_16bit_hash(message)
+        if hash_value in seen_hashes:
+            print(f"Collision found:\nMessage 1: {seen_hashes[hash_value]}\nMessage 2: {message}")
+            print(f"with hash value:{hash_value}")
+            break
+        seen_hashes[hash_value] = message
+
+def find_hmac_collision(key: str):
+    seen_hmacs = {}
+    key_bytes = bytes.fromhex(key)
+    while True:
+        message = os.urandom(4)  # Generate random 4-byte message
+        hmac_value = hmac_16bit(key_bytes, message)
+        if hmac_value in seen_hmacs:
+            print(f"HMAC Collision found:\nMessage 1: {seen_hmacs[hmac_value]}\nMessage 2: {message}")
+            print(f"with hmac value:{hmac_value}")
+            break
+        seen_hmacs[hmac_value] = message
+
 def main():
     option = input("Do you want to encrypt or decrypt? (encrypt/decrypt): ").strip().lower()
     if option not in ("encrypt", "decrypt"):
@@ -162,6 +186,16 @@ def main():
         output = decrypt_cipher(key, input_data, crypt_mode)
         with open(output_file, 'wb') as fw:
             fw.write(output)  # Write output here for decryption
+
+    collision_option = input("\n\nDo you want to find collisions? (yes/no): ").strip().lower()
+    if collision_option == "yes":
+        collision_type = input("Find hash collision or HMAC collision? (hash/hmac): ").strip().lower()
+        if collision_type == "hash":
+            find_hash_collision()
+        elif collision_type == "hmac":
+            find_hmac_collision(key)
+        else:
+            print("Invalid collision type")
 
 def is_valid_hex_key(key: str) -> bool:
     try:
